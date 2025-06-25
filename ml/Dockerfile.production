@@ -1,0 +1,95 @@
+# Multi-stage Production Dockerfile for ML Service
+# Optimized for ML workloads with proper security and performance
+
+# Build stage
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libc6-dev \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements files
+COPY requirements.txt requirements-prod.txt ./
+
+# Create virtual environment and install dependencies
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements-prod.txt
+
+# Production stage
+FROM python:3.11-slim AS production
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    curl \
+    tini \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Security: Create non-root user
+RUN groupadd -r mlservice && useradd -r -g mlservice mlservice
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Make virtual environment available in PATH
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY --chown=mlservice:mlservice src/ ./src/
+COPY --chown=mlservice:mlservice models/ ./models/
+COPY --chown=mlservice:mlservice config/ ./config/
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/cache /app/tmp && \
+    chown -R mlservice:mlservice /app/logs /app/cache /app/tmp
+
+# Set proper permissions
+RUN chmod -R 755 /app/src && \
+    chmod -R 644 /app/models && \
+    find /app -type d -exec chmod 755 {} \;
+
+# Switch to non-root user
+USER mlservice
+
+# Health check with longer timeout for ML models
+HEALTHCHECK --interval=60s --timeout=30s --start-period=120s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Environment variables for Python optimization
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PYTHONPATH="/app/src" \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Labels for metadata
+LABEL maintainer="ml-team@crmbet.com" \
+      version="1.0.0" \
+      description="CRM Inteligente ML Service" \
+      security.scan="enabled" \
+      org.opencontainers.image.title="CRM ML Service" \
+      org.opencontainers.image.description="Machine Learning service for user clustering and predictions" \
+      org.opencontainers.image.vendor="CRMBet" \
+      org.opencontainers.image.licenses="MIT"
+
+# Expose ports
+EXPOSE 8000 9091
+
+# Use tini as init system
+ENTRYPOINT ["tini", "--"]
+
+# Start application with multiple workers for production
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker"]

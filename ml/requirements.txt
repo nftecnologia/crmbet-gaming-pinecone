@@ -1,0 +1,365 @@
+# ML Clustering System - Gaming/Apostas CRM
+# Dependências para sistema completo de clusterização
+# Python 3.9+
+
+# ================================
+# CORE ML LIBRARIES
+# ================================
+
+# Scikit-learn - Algoritmos de ML e métricas
+scikit-learn==1.3.2
+
+# NumPy - Computação numérica
+numpy==1.24.4
+
+# Pandas - Manipulação de dados
+pandas==2.0.3
+
+# SciPy - Funções científicas
+scipy==1.11.4
+
+# ================================
+# CLUSTERING ESPECÍFICO
+# ================================
+
+# HDBSCAN - Clustering hierárquico baseado em densidade
+hdbscan==0.8.33
+
+# ================================
+# VISUALIZAÇÃO
+# ================================
+
+# Matplotlib - Plots básicos
+matplotlib==3.7.5
+
+# Seaborn - Visualização estatística
+seaborn==0.12.2
+
+# ================================
+# FEATURE ENGINEERING
+# ================================
+
+# Statsmodels - Análise estatística avançada
+statsmodels==0.14.0
+
+# ================================
+# UTILIDADES E PERFORMANCE
+# ================================
+
+# Joblib - Serialização e paralelização
+joblib==1.3.2
+
+# Pickle - Serialização (built-in, mas documentando)
+# pickle - incluído no Python
+
+# ================================
+# PROCESSAMENTO DE TEMPO
+# ================================
+
+# Python-dateutil - Manipulação de datas
+python-dateutil==2.8.2
+
+# Pytz - Timezones (opcional)
+pytz==2023.3
+
+# ================================
+# LOGGING E DEBUGGING
+# ================================
+
+# Logging - built-in Python
+# Warnings - built-in Python
+
+# ================================
+# DATA VALIDATION
+# ================================
+
+# Pathlib - built-in Python 3.4+
+# JSON - built-in Python
+# CSV - built-in Python
+
+# ================================
+# DESENVOLVIMENTO E TESTES
+# ================================
+
+# PyTest - Framework de testes
+pytest==7.4.3
+
+# PyTest-cov - Coverage de testes
+pytest-cov==4.1.0
+
+# ================================
+# PERFORMANCE E OTIMIZAÇÃO
+# ================================
+
+# Numba - Compilação JIT (opcional para otimização)
+# numba==0.58.1
+
+# ================================
+# MEMORY PROFILING (OPCIONAL)
+# ================================
+
+# Memory-profiler - Profiling de memória
+# memory-profiler==0.61.0
+
+# Psutil - Informações do sistema
+# psutil==5.9.6
+
+# ================================
+# DISTRIBUTED COMPUTING & SCALING
+# ================================
+
+# Dask - Distributed computing
+dask[complete]==2023.12.1
+dask-ml==2023.3.24
+
+# Ray - Distributed ML and auto-scaling
+ray[default]==2.8.1
+ray[tune]==2.8.1
+ray[serve]==2.8.1
+
+# CuML - GPU-accelerated ML (RAPIDS)
+# cuml==23.12.00  # Uncomment if GPU available
+# cudf==23.12.00  # GPU DataFrames
+# cupy==12.3.0    # GPU arrays
+
+# ================================
+# STREAMING & REAL-TIME ML
+# ================================
+
+# Kafka integration
+kafka-python==2.0.2
+confluent-kafka==2.3.0
+
+# Apache Pulsar (alternative to Kafka)
+pulsar-client==3.4.0
+
+# River - Online ML algorithms
+river==0.19.0
+
+# ================================
+# MODEL SERVING & DEPLOYMENT
+# ================================
+
+# TensorFlow Serving
+tensorflow==2.15.0
+tensorflow-serving-api==2.15.0
+
+# MLflow - Model registry and versioning
+mlflow==2.8.1
+
+# FastAPI - High-performance API
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Seldon Core - Enterprise model serving
+seldon-core==1.17.1
+
+# ================================
+# FEATURE STORE & CACHING
+# ================================
+
+# Redis - Feature caching
+redis==5.0.1
+redis-py-cluster==2.1.3
+
+# Feast - Feature store
+feast==0.34.1
+
+# Apache Arrow - Columnar data format
+pyarrow==14.0.1
+
+# ================================
+# MONITORING & OBSERVABILITY
+# ================================
+
+# Prometheus - Metrics
+prometheus-client==0.19.0
+
+# Grafana integration
+grafana-api==1.0.3
+
+# Model monitoring
+evidently==0.4.11
+whylogs==1.3.13
+
+# ================================
+# AUTO-SCALING & ORCHESTRATION
+# ================================
+
+# Kubernetes client
+kubernetes==28.1.0
+
+# Celery - Distributed task queue
+celery==5.3.4
+celery[redis]==5.3.4
+
+# Apache Airflow - Workflow orchestration
+apache-airflow==2.7.3
+
+# ================================
+# PERFORMANCE OPTIMIZATION
+# ================================
+
+# Numba - JIT compilation
+numba==0.58.1
+
+# Intel Extension for Scikit-learn
+scikit-learn-intelex==2023.2.1
+
+# ONNX - Model optimization
+onnx==1.15.0
+onnxruntime==1.16.3
+onnxruntime-gpu==1.16.3
+
+# Model compression
+torch==2.1.1
+torchvision==0.16.1
+
+# ================================
+# CLUSTER ANALYSIS ESPECIALIZADO
+# ================================
+
+# Yellowbrick - Visualização de ML (opcional)
+# yellowbrick==1.5
+
+# ================================
+# CONFIGURAÇÃO DE AMBIENTE
+# ================================
+
+# Python-dotenv - Variáveis de ambiente
+python-dotenv==1.0.0
+
+# ================================
+# EXPORTAÇÃO E RELATÓRIOS
+# ================================
+
+# openpyxl - Excel export (opcional)
+# openpyxl==3.1.2
+
+# XlsxWriter - Excel writer (opcional)
+# xlsxwriter==3.1.9
+
+# ================================
+# CLUSTERING AVANÇADO (OPCIONAL)
+# ================================
+
+# UMAP - Redução de dimensionalidade
+# umap-learn==0.5.4
+
+# t-SNE está incluído no scikit-learn
+
+# ================================
+# ANÁLISE DE REDES (OPCIONAL)
+# ================================
+
+# NetworkX - Análise de grafos (se necessário para clustering)
+# networkx==3.2.1
+
+# ================================
+# PINECONE VECTOR DATABASE & EMBEDDINGS
+# ================================
+
+# Pinecone - Vector database for similarity search
+pinecone-client==2.2.4
+pinecone[grpc]==2.2.4
+
+# Sentence Transformers - Text embeddings
+sentence-transformers==2.2.2
+transformers==4.35.2
+tokenizers==0.15.0
+
+# Additional ML for embeddings
+torch==2.1.1
+torchvision==0.16.1
+torchaudio==2.1.1
+
+# Text processing
+nltk==3.8.1
+spacy==3.7.2
+
+# Vector operations
+faiss-cpu==1.7.4
+annoy==1.17.3
+
+# ================================
+# STRUCTURED LOGGING & MONITORING
+# ================================
+
+# Structured logging
+structlog==23.2.0
+colorama==0.4.6
+
+# Additional monitoring
+psutil==5.9.6
+
+# ================================
+# MACHINE LEARNING PIPELINE
+# ================================
+
+# Scikit-optimize - Otimização de hiperparâmetros (opcional)
+# scikit-optimize==0.9.0
+
+# ================================
+# COMPATIBILIDADE
+# ================================
+
+# Six - Compatibilidade Python 2/3
+six==1.16.0
+
+# ================================
+# NOTAS DE INSTALAÇÃO
+# ================================
+
+# Para instalar todas as dependências:
+# pip install -r requirements.txt
+
+# Para ambiente de desenvolvimento:
+# pip install -r requirements.txt
+# pip install pytest pytest-cov
+
+# Para instalar dependências opcionais:
+# pip install numba yellowbrick umap-learn openpyxl
+
+# ================================
+# DEPENDÊNCIAS POR COMPONENTE
+# ================================
+
+# clustering/*.py:
+# - scikit-learn, numpy, pandas, scipy, matplotlib, seaborn
+
+# features/*.py:
+# - pandas, numpy, scipy, statsmodels, python-dateutil
+
+# models/*.py:
+# - scikit-learn, pandas, numpy, joblib, pickle
+
+# utils/*.py:
+# - scikit-learn, matplotlib, seaborn, pandas, numpy
+
+# ml_cluster.py (script principal):
+# - todas as dependências acima + argparse (built-in)
+
+# ================================
+# VERSÕES MÍNIMAS TESTADAS
+# ================================
+
+# Python: 3.9+
+# OS: Windows 10+, macOS 10.15+, Ubuntu 18.04+
+# RAM: 4GB mínimo, 8GB recomendado
+# Storage: 1GB livre para dependências
+
+# ================================
+# INSTALAÇÃO EM DIFERENTES AMBIENTES
+# ================================
+
+# Conda:
+# conda install scikit-learn pandas numpy scipy matplotlib seaborn
+# conda install -c conda-forge hdbscan
+
+# Pip com restrições de versão:
+# pip install -r requirements.txt --constraint constraints.txt
+
+# Docker:
+# FROM python:3.9
+# COPY requirements.txt .
+# RUN pip install -r requirements.txt

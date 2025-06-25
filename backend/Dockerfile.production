@@ -1,0 +1,89 @@
+# Multi-stage Production Dockerfile for Node.js Backend
+# Optimized for security, performance, and minimal size
+
+# Build stage
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    libc6-compat
+
+WORKDIR /app
+
+# Copy package files for better caching
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci --include=dev && npm cache clean --force
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the application
+RUN npm run build
+
+# Remove dev dependencies
+RUN npm prune --production
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Security: Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S crmbet -u 1001 -G nodejs
+
+# Install security updates and required packages
+RUN apk update && \
+    apk upgrade && \
+    apk add --no-cache \
+        curl \
+        dumb-init \
+        tini && \
+    rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder --chown=crmbet:nodejs /app/dist ./dist
+COPY --from=builder --chown=crmbet:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=crmbet:nodejs /app/package*.json ./
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/uploads /app/cache && \
+    chown -R crmbet:nodejs /app/logs /app/uploads /app/cache
+
+# Security: Remove unnecessary packages and files
+RUN rm -rf /usr/share/man/* \
+           /usr/share/doc/* \
+           /var/cache/apk/* \
+           /tmp/*
+
+# Switch to non-root user
+USER crmbet
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+# Labels for metadata
+LABEL maintainer="dev@crmbet.com" \
+      version="1.0.0" \
+      description="CRM Inteligente Backend API" \
+      security.scan="enabled" \
+      org.opencontainers.image.title="CRM Backend" \
+      org.opencontainers.image.description="High-performance Node.js backend for CRM system" \
+      org.opencontainers.image.vendor="CRMBet" \
+      org.opencontainers.image.licenses="MIT"
+
+# Expose port
+EXPOSE 3000 9090
+
+# Use tini as init system for proper signal handling
+ENTRYPOINT ["tini", "--"]
+
+# Start application
+CMD ["node", "dist/index.js"]

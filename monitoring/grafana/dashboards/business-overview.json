@@ -1,0 +1,516 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "CRM Bet - Business Overview Dashboard",
+    "tags": ["business", "kpi", "revenue", "betting"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "environment",
+          "type": "query",
+          "query": "label_values(up, environment)",
+          "refresh": 1,
+          "includeAll": false,
+          "multi": false,
+          "current": {
+            "value": "production",
+            "text": "production"
+          }
+        },
+        {
+          "name": "time_range",
+          "type": "interval",
+          "query": "1m,5m,15m,30m,1h,6h,12h,1d,7d,30d",
+          "current": {
+            "value": "5m",
+            "text": "5m"
+          }
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🏦 RECEITA TOTAL",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(business_revenue_total[$time_range])) * 3600",
+            "refId": "A",
+            "legendFormat": "Receita por Hora"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "currencyUSD",
+            "decimals": 2,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "green", "value": 5000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 2,
+        "title": "👥 USUÁRIOS ATIVOS DIÁRIOS",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "business_active_users_daily",
+            "refId": "A",
+            "legendFormat": "DAU"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 0,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 1000},
+                {"color": "green", "value": 5000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 3,
+        "title": "🎯 TRANSAÇÕES PROCESSADAS",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(business_transactions_total[$time_range])) * 60",
+            "refId": "A",
+            "legendFormat": "Transações/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 50},
+                {"color": "green", "value": 100}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 4,
+        "title": "🎲 APOSTAS REALIZADAS",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(business_bets_total[$time_range])) * 60",
+            "refId": "A",
+            "legendFormat": "Apostas/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 50}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "auto",
+          "textMode": "auto",
+          "colorMode": "background"
+        }
+      },
+      {
+        "id": 5,
+        "title": "📈 RECEITA AO LONGO DO TEMPO",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum(rate(business_revenue_total[$time_range])) * 3600",
+            "refId": "A",
+            "legendFormat": "Receita/hora"
+          },
+          {
+            "expr": "avg_over_time((sum(rate(business_revenue_total[$time_range])) * 3600)[24h:])",
+            "refId": "B",
+            "legendFormat": "Média 24h"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "options": {
+          "tooltip": {"mode": "multi", "sort": "none"},
+          "legend": {"displayMode": "visible", "placement": "bottom"}
+        }
+      },
+      {
+        "id": 6,
+        "title": "⚡ MÉTRICAS DE PERFORMANCE",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "refId": "A",
+            "legendFormat": "P95 Response Time"
+          },
+          {
+            "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m]) / rate(http_requests_total[5m]) * 100",
+            "refId": "B",
+            "legendFormat": "Error Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "s",
+            "decimals": 3
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "Error Rate %"},
+              "properties": [
+                {"id": "unit", "value": "percent"},
+                {"id": "decimals", "value": 2}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+      },
+      {
+        "id": 7,
+        "title": "🚨 ALERTAS ATIVOS",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 12},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "indexByName": {},
+              "renameByName": {
+                "alertname": "Alert",
+                "severity": "Severity",
+                "summary": "Summary",
+                "instance": "Instance"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "💰 DISTRIBUIÇÃO DE RECEITA POR FONTE",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (revenue_source) (rate(business_revenue_total[$time_range]))",
+            "refId": "A",
+            "legendFormat": "{{revenue_source}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 2
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "pieType": "pie",
+          "tooltip": {"mode": "single", "sort": "none"},
+          "legend": {"displayMode": "visible", "placement": "right", "values": ["percent"]}
+        }
+      },
+      {
+        "id": 9,
+        "title": "🎯 TAXA DE CONVERSÃO DE CAMPANHAS",
+        "type": "bargauge",
+        "targets": [
+          {
+            "expr": "sum by (campaign_type) (rate(business_campaign_conversions_total[$time_range])) / sum by (campaign_type) (rate(business_campaign_sends_total[$time_range])) * 100",
+            "refId": "A",
+            "legendFormat": "{{campaign_type}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "decimals": 2,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 2},
+                {"color": "green", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18},
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"],
+            "fields": ""
+          },
+          "orientation": "horizontal",
+          "displayMode": "gradient"
+        }
+      },
+      {
+        "id": 10,
+        "title": "🔒 MÉTRICAS DE SEGURANÇA",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(security_threats_total[$time_range]) * 60",
+            "refId": "A",
+            "legendFormat": "Ameaças/min"
+          },
+          {
+            "expr": "rate(business_login_attempts_total{status=\"failed\"}[$time_range]) * 60",
+            "refId": "B",
+            "legendFormat": "Login Failures/min"
+          },
+          {
+            "expr": "rate(business_compliance_violations_total[$time_range]) * 60",
+            "refId": "C",
+            "legendFormat": "Compliance Violations/min"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 1
+          }
+        },
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18},
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.5],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "2m",
+          "frequency": "30s",
+          "handler": 1,
+          "name": "Security Threats Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 11,
+        "title": "📊 TOP 10 USUÁRIOS POR RECEITA",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (user_id) (rate(business_revenue_total[$time_range]) * 3600))",
+            "refId": "A",
+            "format": "table",
+            "instant": true
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "currencyUSD",
+            "decimals": 2
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 26},
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "indexByName": {},
+              "renameByName": {
+                "user_id": "User ID",
+                "Value": "Revenue/Hour"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "🤖 MÉTRICAS DE MACHINE LEARNING",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "business_ml_model_accuracy",
+            "refId": "A",
+            "legendFormat": "Model Accuracy"
+          },
+          {
+            "expr": "rate(business_ml_predictions_total[$time_range]) * 60",
+            "refId": "B",
+            "legendFormat": "Predictions/min"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(business_ml_inference_duration_seconds_bucket[$time_range]))",
+            "refId": "C",
+            "legendFormat": "P95 Inference Time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "decimals": 3
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "P95 Inference Time"},
+              "properties": [
+                {"id": "unit", "value": "s"}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 26}
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "changes(business_deployment_timestamp[1h]) > 0",
+          "iconColor": "blue",
+          "titleFormat": "Deployment",
+          "textFormat": "New deployment detected"
+        },
+        {
+          "name": "Incidents",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{alertstate=\"firing\",severity=\"critical\"}",
+          "iconColor": "red",
+          "titleFormat": "Critical Incident",
+          "textFormat": "{{alertname}}: {{summary}}"
+        }
+      ]
+    }
+  }
+}

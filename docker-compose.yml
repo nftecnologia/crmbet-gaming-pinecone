@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: crmbet_postgres
+    environment:
+      POSTGRES_DB: crmbet
+      POSTGRES_USER: crmbet_user
+      POSTGRES_PASSWORD: crmbet_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs/sql:/docker-entrypoint-initdb.d
+    networks:
+      - crmbet_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crmbet_user -d crmbet"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Cache & Session Store
+  redis:
+    image: redis:7-alpine
+    container_name: crmbet_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - crmbet_network
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Message Queue
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: crmbet_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: crmbet_user
+      RABBITMQ_DEFAULT_PASS: crmbet_password
+      RABBITMQ_DEFAULT_VHOST: crmbet_vhost
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - crmbet_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backend API
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: crmbet_backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://crmbet_user:crmbet_password@postgres:5432/crmbet
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://crmbet_user:crmbet_password@rabbitmq:5672/crmbet_vhost
+      PORT: 3000
+      JWT_SECRET: your_super_secret_jwt_key_here_change_in_production
+      SMARTICO_API_URL: https://api.smartico.com
+      SMARTICO_API_KEY: your_smartico_api_key_here
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - crmbet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ML Pipeline Service
+  ml_service:
+    build:
+      context: ./ml
+      dockerfile: Dockerfile
+    container_name: crmbet_ml
+    environment:
+      DATABASE_URL: postgresql://crmbet_user:crmbet_password@postgres:5432/crmbet
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://crmbet_user:crmbet_password@rabbitmq:5672/crmbet_vhost
+      ML_MODEL_PATH: /app/models
+      ML_BATCH_SIZE: 1000
+      PYTHONPATH: /app/src
+    volumes:
+      - ./ml:/app
+      - ml_models:/app/models
+    networks:
+      - crmbet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ETL Service
+  etl_service:
+    build:
+      context: ./etl
+      dockerfile: Dockerfile
+    container_name: crmbet_etl
+    environment:
+      DATABASE_URL: postgresql://crmbet_user:crmbet_password@postgres:5432/crmbet
+      DATA_LAKE_URL: s3://your-datalake-bucket
+      AWS_ACCESS_KEY_ID: your_aws_access_key
+      AWS_SECRET_ACCESS_KEY: your_aws_secret_key
+      AWS_REGION: us-east-1
+      RABBITMQ_URL: amqp://crmbet_user:crmbet_password@rabbitmq:5672/crmbet_vhost
+      ETL_BATCH_SIZE: 5000
+      PYTHONPATH: /app/src
+    volumes:
+      - ./etl:/app
+      - etl_logs:/app/logs
+    networks:
+      - crmbet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: crmbet_frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:3000/api/v1
+      REACT_APP_WS_URL: ws://localhost:3000
+      REACT_APP_ENV: development
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - crmbet_network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  crmbet_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+  ml_models:
+    driver: local
+  etl_logs:
+    driver: local

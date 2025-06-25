@@ -1,0 +1,292 @@
+# ALERTAS CRÍTICOS DE NEGÓCIO - SISTEMA FINANCEIRO
+# Alertas específicos para operações críticas de apostas e transações
+
+groups:
+  - name: business-critical
+    interval: 30s
+    rules:
+      
+      # === TRANSAÇÕES FINANCEIRAS ===
+      - alert: HighTransactionFailureRate
+        expr: |
+          (
+            rate(business_transactions_failed_total[5m]) / 
+            rate(business_transactions_total[5m])
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+          category: financial
+          impact: revenue
+        annotations:
+          summary: "Taxa alta de falha em transações financeiras"
+          description: "Taxa de falha de transações está em {{ $value }}% nos últimos 5 minutos"
+          runbook_url: "https://runbooks.crmbet.com/financial/transaction-failures"
+          dashboard_url: "https://grafana.crmbet.com/d/financial/transactions"
+
+      - alert: TransactionProcessingDelay
+        expr: |
+          histogram_quantile(0.95, 
+            rate(business_transaction_duration_seconds_bucket[5m])
+          ) > 30
+        for: 3m
+        labels:
+          severity: warning
+          category: financial
+          impact: user_experience
+        annotations:
+          summary: "Atraso no processamento de transações"
+          description: "95% das transações estão levando mais de {{ $value }}s para processar"
+          runbook_url: "https://runbooks.crmbet.com/financial/slow-transactions"
+
+      - alert: SuspiciousTransactionVolume
+        expr: |
+          rate(business_transactions_total[1h]) > 
+          avg_over_time(rate(business_transactions_total[1h])[7d]) * 3
+        for: 5m
+        labels:
+          severity: warning
+          category: fraud
+          impact: security
+        annotations:
+          summary: "Volume suspeito de transações detectado"
+          description: "Volume de transações {{ $value }}x maior que a média dos últimos 7 dias"
+          runbook_url: "https://runbooks.crmbet.com/fraud/suspicious-volume"
+
+      # === APOSTAS E JOGOS ===
+      - alert: BettingSystemDown
+        expr: |
+          up{job="betting-engine"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: betting
+          impact: revenue
+        annotations:
+          summary: "Sistema de apostas indisponível"
+          description: "Motor de apostas está fora do ar há {{ $value }} minutos"
+          runbook_url: "https://runbooks.crmbet.com/betting/system-down"
+
+      - alert: HighBetRejectionRate
+        expr: |
+          (
+            rate(business_bets_rejected_total[5m]) / 
+            rate(business_bets_total[5m])
+          ) * 100 > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: betting
+          impact: user_experience
+        annotations:
+          summary: "Taxa alta de rejeição de apostas"
+          description: "{{ $value }}% das apostas estão sendo rejeitadas"
+          runbook_url: "https://runbooks.crmbet.com/betting/high-rejection"
+
+      - alert: UnusualBettingPatterns
+        expr: |
+          rate(business_bets_total{bet_type="high_value"}[1h]) > 
+          avg_over_time(rate(business_bets_total{bet_type="high_value"}[1h])[24h]) * 5
+        for: 10m
+        labels:
+          severity: warning
+          category: fraud
+          impact: risk_management
+        annotations:
+          summary: "Padrões incomuns de apostas detectados"
+          description: "Apostas de alto valor {{ $value }}x acima da média"
+          runbook_url: "https://runbooks.crmbet.com/fraud/unusual-betting"
+
+      # === RECEITA E KPIs ===
+      - alert: RevenueDropSignificant
+        expr: |
+          (
+            rate(business_revenue_total[1h]) < 
+            avg_over_time(rate(business_revenue_total[1h])[7d]) * 0.5
+          )
+        for: 15m
+        labels:
+          severity: critical
+          category: revenue
+          impact: business
+        annotations:
+          summary: "Queda significativa na receita"
+          description: "Receita horária {{ $value }}% abaixo da média dos últimos 7 dias"
+          runbook_url: "https://runbooks.crmbet.com/revenue/significant-drop"
+
+      - alert: DailyActiveUsersLow
+        expr: |
+          business_active_users_daily < 
+          avg_over_time(business_active_users_daily[7d]) * 0.7
+        for: 30m
+        labels:
+          severity: warning
+          category: engagement
+          impact: business
+        annotations:
+          summary: "Baixo número de usuários ativos diários"
+          description: "Usuários ativos: {{ $value }}, média 7d: {{ with query \"avg_over_time(business_active_users_daily[7d])\" }}{{ . | first | value | printf \"%.0f\" }}{{ end }}"
+          runbook_url: "https://runbooks.crmbet.com/engagement/low-dau"
+
+      # === COMPLIANCE E REGULAMENTAÇÃO ===
+      - alert: ComplianceViolationDetected
+        expr: |
+          rate(business_compliance_violations_total[5m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          category: compliance
+          impact: legal
+        annotations:
+          summary: "Violação de compliance detectada"
+          description: "{{ $value }} violações de compliance por minuto"
+          runbook_url: "https://runbooks.crmbet.com/compliance/violations"
+
+      - alert: KYCProcessingBacklog
+        expr: |
+          business_kyc_pending_total > 1000
+        for: 10m
+        labels:
+          severity: warning
+          category: compliance
+          impact: onboarding
+        annotations:
+          summary: "Acúmulo no processamento KYC"
+          description: "{{ $value }} documentos KYC pendentes de análise"
+          runbook_url: "https://runbooks.crmbet.com/compliance/kyc-backlog"
+
+      # === CAMPANHAS DE MARKETING ===
+      - alert: CampaignEngagementLow
+        expr: |
+          (
+            rate(business_campaign_interactions_total[1h]) / 
+            rate(business_campaign_sends_total[1h])
+          ) * 100 < 5
+        for: 30m
+        labels:
+          severity: warning
+          category: marketing
+          impact: roi
+        annotations:
+          summary: "Baixo engajamento em campanhas"
+          description: "Taxa de engajamento: {{ $value }}%"
+          runbook_url: "https://runbooks.crmbet.com/marketing/low-engagement"
+
+      - alert: CampaignDeliveryFailure
+        expr: |
+          (
+            rate(business_campaign_failed_total[5m]) / 
+            rate(business_campaign_sends_total[5m])
+          ) * 100 > 15
+        for: 5m
+        labels:
+          severity: critical
+          category: marketing
+          impact: communication
+        annotations:
+          summary: "Falha na entrega de campanhas"
+          description: "{{ $value }}% das campanhas falharam na entrega"
+          runbook_url: "https://runbooks.crmbet.com/marketing/delivery-failure"
+
+      # === MACHINE LEARNING E SEGMENTAÇÃO ===
+      - alert: MLModelAccuracyDegraded
+        expr: |
+          business_ml_model_accuracy < 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: ml
+          impact: segmentation
+        annotations:
+          summary: "Degradação na acurácia do modelo ML"
+          description: "Acurácia do modelo: {{ $value }}"
+          runbook_url: "https://runbooks.crmbet.com/ml/accuracy-degraded"
+
+      - alert: ClusteringPipelineStale
+        expr: |
+          (time() - business_clustering_last_update) > 86400
+        for: 0s
+        labels:
+          severity: warning
+          category: ml
+          impact: segmentation
+        annotations:
+          summary: "Pipeline de clustering desatualizado"
+          description: "Última atualização há {{ $value }} segundos"
+          runbook_url: "https://runbooks.crmbet.com/ml/clustering-stale"
+
+      # === SEGURANÇA CRÍTICA ===
+      - alert: SecurityThreatDetected
+        expr: |
+          rate(security_threats_total[1m]) > 0
+        for: 0s
+        labels:
+          severity: critical
+          category: security
+          impact: security
+        annotations:
+          summary: "Ameaça de segurança detectada"
+          description: "{{ $value }} ameaças por minuto detectadas pelo sistema"
+          runbook_url: "https://runbooks.crmbet.com/security/threat-detected"
+
+      - alert: AbnormalLoginAttempts
+        expr: |
+          rate(business_login_attempts_total{status="failed"}[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+          impact: security
+        annotations:
+          summary: "Tentativas anômalas de login"
+          description: "{{ $value }} tentativas de login falharam por minuto"
+          runbook_url: "https://runbooks.crmbet.com/security/login-attempts"
+
+  - name: business-sla
+    interval: 60s
+    rules:
+      
+      # === SLA CRÍTICOS ===
+      - alert: APIResponseTimeSLABreach
+        expr: |
+          histogram_quantile(0.99, 
+            rate(http_request_duration_seconds_bucket{job="crmbet-backend"}[5m])
+          ) > 2.0
+        for: 3m
+        labels:
+          severity: critical
+          category: sla
+          impact: user_experience
+        annotations:
+          summary: "SLA de tempo de resposta violado"
+          description: "99% das requisições levam mais de {{ $value }}s (SLA: 2s)"
+          runbook_url: "https://runbooks.crmbet.com/sla/response-time"
+
+      - alert: ServiceAvailabilitySLABreach
+        expr: |
+          (
+            rate(http_requests_total{status_code!~"5.."}[5m]) / 
+            rate(http_requests_total[5m])
+          ) * 100 < 99.9
+        for: 1m
+        labels:
+          severity: critical
+          category: sla
+          impact: availability
+        annotations:
+          summary: "SLA de disponibilidade violado"
+          description: "Disponibilidade: {{ $value }}% (SLA: 99.9%)"
+          runbook_url: "https://runbooks.crmbet.com/sla/availability"
+
+      - alert: TransactionThroughputSLABreach
+        expr: |
+          rate(business_transactions_total[1m]) < 100
+        for: 5m
+        labels:
+          severity: warning
+          category: sla
+          impact: performance
+        annotations:
+          summary: "SLA de throughput de transações violado"
+          description: "Throughput: {{ $value }} transações/min (SLA: 100/min)"
+          runbook_url: "https://runbooks.crmbet.com/sla/transaction-throughput"

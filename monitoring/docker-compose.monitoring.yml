@@ -1,0 +1,387 @@
+# DOCKER COMPOSE - ENTERPRISE MONITORING STACK
+# Stack completo de observabilidade para sistema financeiro crítico
+
+version: '3.8'
+
+networks:
+  monitoring:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  jaeger_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+services:
+  # ===== PROMETHEUS - METRICS COLLECTION =====
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=50GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--web.external-url=http://localhost:9090'
+      - '--web.route-prefix=/'
+      - '--log.level=info'
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - ./alerts:/etc/prometheus/alerts
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.10
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+
+  # ===== GRAFANA - VISUALIZATION =====
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin_secure_password_2024
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel,grafana-clock-panel
+      - GF_FEATURE_TOGGLES_ENABLE=ngalert
+      - GF_ALERTING_ENABLED=true
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=grafana-db:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=grafana_db_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3001:3000"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.11
+    depends_on:
+      - prometheus
+      - grafana-db
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+
+  # ===== GRAFANA DATABASE =====
+  grafana-db:
+    image: postgres:15-alpine
+    container_name: grafana-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=grafana
+      - POSTGRES_USER=grafana
+      - POSTGRES_PASSWORD=grafana_db_password
+    volumes:
+      - grafana_data:/var/lib/postgresql/data
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.12
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grafana -d grafana"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== JAEGER - DISTRIBUTED TRACING =====
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+      - JAEGER_DISABLED=false
+      - SPAN_STORAGE_TYPE=elasticsearch
+      - ES_SERVER_URLS=http://elasticsearch:9200
+      - ES_USERNAME=elastic
+      - ES_PASSWORD=jaeger_es_password
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # HTTP collector
+      - "14250:14250"  # gRPC collector
+      - "9411:9411"    # Zipkin compatible
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.13
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:16686/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ===== ELASTICSEARCH - JAEGER STORAGE =====
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=jaeger_es_password
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.14
+    healthcheck:
+      test: ["CMD-SHELL", "curl -u elastic:jaeger_es_password -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+
+  # ===== ALERTMANAGER - ALERT ROUTING =====
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+      - '--web.route-prefix=/'
+      - '--log.level=info'
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+      - alertmanager_data:/alertmanager
+    ports:
+      - "9093:9093"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.15
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===== NODE EXPORTER - SYSTEM METRICS =====
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.16
+
+  # ===== CADVISOR - CONTAINER METRICS =====
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro
+    ports:
+      - "8080:8080"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.17
+
+  # ===== POSTGRES EXPORTER =====
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://monitoring_user:monitoring_password@postgres:5432/crmbet?sslmode=disable
+    ports:
+      - "9187:9187"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.18
+
+  # ===== REDIS EXPORTER =====
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.56.0
+    container_name: redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+      - REDIS_PASSWORD=redis_password
+    ports:
+      - "9121:9121"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.19
+
+  # ===== RABBITMQ EXPORTER =====
+  rabbitmq-exporter:
+    image: kbudde/rabbitmq-exporter:v1.0.0-RC19
+    container_name: rabbitmq-exporter
+    restart: unless-stopped
+    environment:
+      - RABBIT_URL=http://rabbitmq:15672
+      - RABBIT_USER=admin
+      - RABBIT_PASSWORD=rabbitmq_password
+      - PUBLISH_PORT=9419
+    ports:
+      - "9419:9419"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.20
+
+  # ===== NGINX EXPORTER =====
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.11.0
+    container_name: nginx-exporter
+    restart: unless-stopped
+    command:
+      - -nginx.scrape-uri=http://nginx/nginx_status
+    ports:
+      - "9113:9113"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.21
+
+  # ===== BLACKBOX EXPORTER - ENDPOINT MONITORING =====
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.24.0
+    container_name: blackbox-exporter
+    restart: unless-stopped
+    volumes:
+      - ./blackbox:/etc/blackbox_exporter
+    ports:
+      - "9115:9115"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.22
+
+  # ===== LOKI - LOG AGGREGATION =====
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki:/etc/loki
+    ports:
+      - "3100:3100"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.23
+
+  # ===== PROMTAIL - LOG COLLECTOR =====
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - ./promtail:/etc/promtail
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.24
+
+  # ===== TEMPO - TRACING BACKEND =====
+  tempo:
+    image: grafana/tempo:2.3.0
+    container_name: tempo
+    restart: unless-stopped
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo:/etc/tempo.yaml:ro
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"   # tempo
+      - "4317:4317"   # otlp grpc
+      - "4318:4318"   # otlp http
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.25
+
+  # ===== VICTORIA METRICS - LONG TERM STORAGE =====
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.95.1
+    container_name: victoriametrics
+    restart: unless-stopped
+    command:
+      - '--storageDataPath=/storage'
+      - '--retentionPeriod=1y'
+      - '--httpListenAddr=:8428'
+    volumes:
+      - vm_data:/storage
+    ports:
+      - "8428:8428"
+    networks:
+      monitoring:
+        ipv4_address: 172.20.0.26
+
+volumes:
+  tempo_data:
+  vm_data:

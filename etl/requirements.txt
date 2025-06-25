@@ -1,0 +1,187 @@
+# 🏗️ INDUSTRIAL ETL PIPELINE REQUIREMENTS - TB+/HOUR SCALE
+# CRM Bet ML - HARDNESS MÁXIMA PARA PROCESSAMENTO MASSIVO
+
+# ═══════════════════════════════════════════════════════════════
+# CORE DATA PROCESSING - HIGH PERFORMANCE
+# ═══════════════════════════════════════════════════════════════
+pandas==2.1.4
+numpy==1.26.2
+polars==0.20.2                # Ultra-fast DataFrame library
+pyarrow==14.0.2               # Columnar in-memory analytics
+fastparquet==2023.10.1        # High-performance parquet I/O
+
+# ═══════════════════════════════════════════════════════════════
+# DISTRIBUTED COMPUTING - MASSIVE PARALLELISM  
+# ═══════════════════════════════════════════════════════════════
+dask[complete]==2023.12.1     # Distributed parallel computing
+dask-ml==2023.3.24            # Scalable machine learning
+distributed==2023.12.1        # Distributed scheduler
+modin[all]==0.25.0             # Drop-in pandas replacement
+ray[default]==2.8.1           # Distributed computing framework
+
+# ═══════════════════════════════════════════════════════════════
+# STREAMING & REAL-TIME PROCESSING
+# ═══════════════════════════════════════════════════════════════
+kafka-python==2.0.2           # Apache Kafka client
+confluent-kafka==2.3.0        # High-performance Kafka client
+pykafka==2.8.1-dev.1          # Alternative Kafka client
+aiokafka==0.10.0              # Async Kafka client
+faust-streaming==0.10.11      # Stream processing library
+
+# ═══════════════════════════════════════════════════════════════
+# DATABASE & STORAGE - INDUSTRIAL SCALE
+# ═══════════════════════════════════════════════════════════════
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+asyncpg==0.29.0               # Async PostgreSQL driver
+databases[postgresql]==0.8.0  # Async database interface
+clickhouse-driver==0.2.6      # ClickHouse for analytics
+redis==5.0.1
+redis-py-cluster==2.1.3       # Redis clustering support
+
+# ═══════════════════════════════════════════════════════════════
+# CLOUD STORAGE - OPTIMIZED
+# ═══════════════════════════════════════════════════════════════
+boto3==1.34.12
+botocore==1.34.12
+s3fs==2023.12.2
+aiobotocore==2.11.0           # Async AWS SDK
+s3transfer==0.10.0            # Optimized S3 transfers
+minio==7.2.0                  # MinIO object storage client
+
+# ═══════════════════════════════════════════════════════════════
+# DATA QUALITY & VALIDATION - ENTERPRISE GRADE
+# ═══════════════════════════════════════════════════════════════
+great-expectations==0.18.4
+pandera==0.17.2
+cerberus==1.3.5
+pydantic==2.5.2
+marshmallow==3.20.2
+jsonschema==4.20.0
+deepdiff==6.7.1               # Advanced data comparison
+
+# ═══════════════════════════════════════════════════════════════
+# FAULT TOLERANCE & RELIABILITY
+# ═══════════════════════════════════════════════════════════════
+tenacity==8.2.3               # Retry library with backoff
+circuit-breaker==1.4.0        # Circuit breaker pattern
+pybreaker==1.0.1              # Advanced circuit breaker
+backoff==2.2.1                # Exponential backoff
+retrying==1.3.4               # Simple retry decorator
+
+# ═══════════════════════════════════════════════════════════════
+# MONITORING & OBSERVABILITY - PRODUCTION READY
+# ═══════════════════════════════════════════════════════════════
+structlog==23.2.0
+loguru==0.7.2
+prometheus-client==0.19.0     # Prometheus metrics
+opencensus==0.11.4            # Distributed tracing
+py-spy==0.3.14                # Sampling profiler
+memory-profiler==0.61.0       # Memory usage profiler
+psutil==5.9.6                 # System monitoring
+
+# ═══════════════════════════════════════════════════════════════
+# CONFIGURATION & ENVIRONMENT
+# ═══════════════════════════════════════════════════════════════
+python-dotenv==1.0.0
+pyyaml==6.0.1
+hydra-core==1.3.2             # Configuration management
+omegaconf==2.3.0              # Configuration framework
+dynaconf==3.2.4               # Dynamic configuration
+
+# ═══════════════════════════════════════════════════════════════
+# JOB SCHEDULING & ORCHESTRATION - ENTERPRISE
+# ═══════════════════════════════════════════════════════════════
+celery[redis]==5.3.4
+schedule==1.2.1
+APScheduler==3.10.4           # Advanced Python Scheduler
+prefect==2.14.11              # Modern workflow orchestration
+airflow==2.8.0                # Apache Airflow (optional)
+dramatiq[redis]==1.15.0       # Distributed task processing
+
+# ═══════════════════════════════════════════════════════════════
+# MACHINE LEARNING & ANALYTICS - SCALABLE
+# ═══════════════════════════════════════════════════════════════
+scikit-learn==1.3.2
+scipy==1.11.4
+statsmodels==0.14.1
+xgboost==2.0.3                # Gradient boosting
+lightgbm==4.1.0               # Gradient boosting
+catboost==1.2.2               # Gradient boosting
+optuna==3.5.0                 # Hyperparameter optimization
+
+# ═══════════════════════════════════════════════════════════════
+# COMPRESSION & SERIALIZATION - HIGH PERFORMANCE
+# ═══════════════════════════════════════════════════════════════
+lz4==4.3.2                    # Ultra-fast compression
+zstandard==0.22.0             # High-ratio compression
+snappy==3.1.2                 # Fast compression
+blosc==1.11.1                 # Compressed arrays
+msgpack==1.0.7                # Fast serialization
+orjson==3.9.10                # Ultra-fast JSON
+
+# ═══════════════════════════════════════════════════════════════
+# ASYNC & CONCURRENCY - MAXIMUM THROUGHPUT
+# ═══════════════════════════════════════════════════════════════
+asyncio==3.4.3
+aiohttp==3.9.1
+aiofiles==23.2.0
+uvloop==0.19.0                # Ultra-fast asyncio event loop
+gevent==23.9.1                # Async networking library
+
+# ═══════════════════════════════════════════════════════════════
+# DATETIME & UTILS - OPTIMIZED
+# ═══════════════════════════════════════════════════════════════
+arrow==1.3.0
+python-dateutil==2.8.2
+pendulum==2.1.2               # Better datetime handling
+pytz==2023.3.post1
+
+# ═══════════════════════════════════════════════════════════════
+# TESTING & DEVELOPMENT
+# ═══════════════════════════════════════════════════════════════
+pytest==7.4.3
+pytest-cov==4.1.0
+pytest-asyncio==0.23.2
+pytest-benchmark==4.0.0
+hypothesis==6.92.1            # Property-based testing
+factory-boy==3.3.0            # Test data generation
+
+# ═══════════════════════════════════════════════════════════════
+# PERFORMANCE & OPTIMIZATION - MAXIMUM SPEED
+# ═══════════════════════════════════════════════════════════════
+numba==0.58.1                 # JIT compilation
+cython==3.0.6                 # C extensions
+pythran==0.15.0               # Python to C++ compiler
+numexpr==2.8.8                # Fast numerical expressions
+bottleneck==1.3.7             # Fast NumPy array functions
+
+# ═══════════════════════════════════════════════════════════════
+# MEMORY MANAGEMENT - LARGE DATASETS
+# ═══════════════════════════════════════════════════════════════
+pympler==0.9                  # Memory profiling
+objgraph==3.6.1               # Object reference tracking
+tracemalloc==1.0              # Memory allocation tracking
+gc-utils==0.1.0               # Garbage collection utilities
+
+# ═══════════════════════════════════════════════════════════════
+# NETWORK & HTTP - HIGH THROUGHPUT
+# ═══════════════════════════════════════════════════════════════
+httpx==0.25.2                 # Async HTTP client
+requests==2.31.0
+urllib3==2.1.0
+aiohttp-retry==2.8.3          # Async HTTP retry
+
+# ═══════════════════════════════════════════════════════════════
+# SECURITY & ENCRYPTION
+# ═══════════════════════════════════════════════════════════════
+cryptography==41.0.8
+bcrypt==4.1.2
+passlib==1.7.4
+
+# ═══════════════════════════════════════════════════════════════
+# GRAPH & NETWORK ANALYSIS (for advanced clustering)
+# ═══════════════════════════════════════════════════════════════
+networkx==3.2.1
+igraph==0.11.3
+graph-tool==2.45              # High-performance graph analysis

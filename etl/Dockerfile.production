@@ -1,0 +1,100 @@
+# Multi-stage Production Dockerfile for ETL Service
+# Optimized for data processing workloads
+
+# Build stage
+FROM python:3.11-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    libc6-dev \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy requirements files
+COPY requirements.txt requirements-prod.txt ./
+
+# Create virtual environment and install dependencies
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements-prod.txt
+
+# Production stage
+FROM python:3.11-slim AS production
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libpq5 \
+    curl \
+    tini \
+    cron \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Security: Create non-root user
+RUN groupadd -r etlservice && useradd -r -g etlservice etlservice
+
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Make virtual environment available in PATH
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY --chown=etlservice:etlservice src/ ./src/
+COPY --chown=etlservice:etlservice config/ ./config/
+COPY --chown=etlservice:etlservice scripts/ ./scripts/
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/logs /app/cache /app/tmp /app/data && \
+    chown -R etlservice:etlservice /app/logs /app/cache /app/tmp /app/data
+
+# Set up cron jobs for ETL schedules
+COPY --chown=root:root crontab /etc/cron.d/etl-cron
+RUN chmod 0644 /etc/cron.d/etl-cron && \
+    crontab /etc/cron.d/etl-cron
+
+# Set proper permissions
+RUN chmod -R 755 /app/src /app/scripts && \
+    find /app -type d -exec chmod 755 {} \;
+
+# Switch to non-root user for application execution
+USER etlservice
+
+# Health check for ETL service
+HEALTHCHECK --interval=120s --timeout=30s --start-period=180s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:9092/health', timeout=10)" || exit 1
+
+# Environment variables for Python optimization
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PYTHONPATH="/app/src" \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Labels for metadata
+LABEL maintainer="data-team@crmbet.com" \
+      version="1.0.0" \
+      description="CRM Inteligente ETL Service" \
+      security.scan="enabled" \
+      org.opencontainers.image.title="CRM ETL Service" \
+      org.opencontainers.image.description="Extract, Transform, Load service for CRM data processing" \
+      org.opencontainers.image.vendor="CRMBet" \
+      org.opencontainers.image.licenses="MIT"
+
+# Expose metrics port
+EXPOSE 9092
+
+# Use tini as init system
+ENTRYPOINT ["tini", "--"]
+
+# Start ETL service with monitoring
+CMD ["python", "src/main.py"]

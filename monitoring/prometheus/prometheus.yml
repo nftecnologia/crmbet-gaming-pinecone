@@ -1,0 +1,178 @@
+# PROMETHEUS CONFIGURATION - ENTERPRISE GRADE
+# Sistema de coleta de métricas para ambiente financeiro crítico
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    cluster: 'crmbet-main'
+    region: 'us-east-1'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+# Rules configuration
+rule_files:
+  - "rules/*.yml"
+  - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    scheme: http
+
+  # CRM Backend API
+  - job_name: 'crmbet-backend'
+    static_configs:
+      - targets: ['crmbet-backend:3000']
+    scrape_interval: 10s
+    metrics_path: /metrics
+    scheme: http
+    params:
+      format: ['prometheus']
+    basic_auth:
+      username: 'prometheus'
+      password: 'metrics_password'
+    scrape_timeout: 10s
+    honor_labels: true
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'go_.*'
+        action: drop
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: crmbet-backend:3000
+
+  # PostgreSQL Monitoring
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+
+  # Redis Monitoring
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # RabbitMQ Monitoring
+  - job_name: 'rabbitmq-exporter'
+    static_configs:
+      - targets: ['rabbitmq-exporter:9419']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # cAdvisor (Container Metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+
+  # Nginx Monitoring
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Jaeger Monitoring
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+
+  # Business Metrics (Custom)
+  - job_name: 'business-metrics'
+    static_configs:
+      - targets: ['crmbet-backend:3000']
+    scrape_interval: 30s
+    metrics_path: /business-metrics
+    params:
+      format: ['prometheus']
+
+  # ML Pipeline Monitoring
+  - job_name: 'ml-pipeline'
+    static_configs:
+      - targets: ['ml-service:8080']
+    scrape_interval: 60s
+    scrape_timeout: 30s
+
+  # ETL Pipeline Monitoring
+  - job_name: 'etl-pipeline'
+    static_configs:
+      - targets: ['etl-service:8081']
+    scrape_interval: 120s
+    scrape_timeout: 60s
+
+  # Frontend Monitoring (if available)
+  - job_name: 'frontend-metrics'
+    static_configs:
+      - targets: ['crmbet-frontend:3001']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scheme: http
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "https://prometheus-remote-write.monitoring.amazonaws.com/workspaces/ws-12345678-1234-1234-1234-123456789012/api/v1/remote_write"
+    queue_config:
+      max_samples_per_send: 1000
+      max_shards: 200
+      capacity: 2500
+    metadata_config:
+      send: true
+      send_interval: 30s
+      max_samples_per_send: 500
+
+# Remote read configuration
+remote_read:
+  - url: "https://prometheus-remote-read.monitoring.amazonaws.com/workspaces/ws-12345678-1234-1234-1234-123456789012/api/v1/read"
+    read_recent: true
+
+# Storage configuration
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 50GB
+    path: /prometheus
+    wal-compression: true
+    max-block-duration: 2h
+    min-block-duration: 2h
+
+# Web configuration
+web:
+  console.templates: /usr/share/prometheus/consoles
+  console.libraries: /usr/share/prometheus/console_libraries
+  enable-lifecycle: true
+  enable-admin-api: true
+  max-connections: 512
+  read-timeout: 30s
+  route-prefix: /prometheus/
